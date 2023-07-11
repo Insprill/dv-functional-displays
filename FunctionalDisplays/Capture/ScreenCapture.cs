@@ -28,6 +28,7 @@ public class ScreenCapture
     private readonly Bitmap bitmap;
     private readonly Texture2D texture;
     private readonly SharpDX.Direct3D11.Texture2D screenTexture;
+    private readonly byte[] rgbValues;
 
     private bool hasFrameToRelease;
 
@@ -56,6 +57,7 @@ public class ScreenCapture
             SampleDescription = { Count = 1, Quality = 0 },
             Usage = ResourceUsage.Staging
         });
+        rgbValues = new byte[width * 4 * height];
     }
 
     public void Cleanup()
@@ -135,7 +137,6 @@ public class ScreenCapture
 
         // Declare an array to hold the bytes of the bitmap
         int bytes = Mathf.Abs(bitmapData.Stride) * height;
-        byte[] rgbValues = new byte[bytes];
 
         // Get the address of the first line
         IntPtr ptr = bitmapData.Scan0;
