@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
+using FunctionalDisplays.Native;
 using UnityEngine;
 using Graphics = System.Drawing.Graphics;
 
@@ -24,70 +23,16 @@ public class WindowCapture : CaptureSource
 
     public override Texture2D Texture => texture;
 
-    #region Windows API
-
-    [DllImport("user32.dll")]
-    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-    private delegate bool Win32Callback(IntPtr hwnd, IntPtr lParam);
-
-    [DllImport("user32.Dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool EnumChildWindows(IntPtr parentHandle, Win32Callback callback, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    private static extern bool GetClientRect(IntPtr hWnd, out Rectangle lpRect);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetWindowDC(IntPtr hWnd);
-
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
-
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int nWidth, int nHeight);
-
-    [DllImport("gdi32.dll")]
-    private static extern bool BitBlt(IntPtr hdc, int nXDest, int nYDest, int nWidth, int nHeight, IntPtr hdcSrc, int nXSrc, int nYSrc, uint dwRop);
-
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteObject(IntPtr hObject);
-
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteDC(IntPtr hdc);
-
-    [DllImport("user32.dll")]
-    private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
-
-    private const uint SRCCOPY = 0x00CC0020; // BitBlt dwRop parameter
-
-    #endregion
-
     public override void Capture()
     {
-        int pid = settings.windowPid.Value;
-        List<IntPtr> rootWindows = GetRootWindowsOfProcess(pid);
-        if (rootWindows.Count == 0)
+        uint pid = settings.windowPid.Value;
+        if (!User32.Helper.TryGetRootWindowOfProcess(pid, out IntPtr windowHandle))
         {
             FunctionalDisplays.Instance.Logger.LogError($"No windows found for PID {pid}!");
             return;
         }
 
-        int index = settings.windowIndex.Value;
-        if (index >= rootWindows.Count || index < 0)
-        {
-            FunctionalDisplays.Instance.Logger.LogError($"Invalid window index {index} for process {pid}!");
-            return;
-        }
-
-        IntPtr windowHandle = rootWindows[index];
-        if (windowHandle == IntPtr.Zero)
-        {
-            FunctionalDisplays.Instance.Logger.LogError("Window not found!");
-            return;
-        }
-
-        GetClientRect(windowHandle, out Rectangle clientRect);
+        User32.GetClientRect(windowHandle, out Rectangle clientRect);
         int width = clientRect.Width;
         int height = clientRect.Height;
 
@@ -107,16 +52,16 @@ public class WindowCapture : CaptureSource
         }
 
         // Get the handle to the client area's device context
-        IntPtr hdcSrc = GetWindowDC(windowHandle);
+        IntPtr hdcSrc = User32.GetWindowDC(windowHandle);
 
         // Create a memory device context compatible with the client area
-        IntPtr hdcDest = CreateCompatibleDC(hdcSrc);
+        IntPtr hdcDest = Gdi32.CreateCompatibleDC(hdcSrc);
 
         // Create a bitmap compatible with the client area
-        IntPtr hBitmap = CreateCompatibleBitmap(hdcSrc, width, height);
+        IntPtr hBitmap = Gdi32.CreateCompatibleBitmap(hdcSrc, width, height);
 
         // Bit block transfer into our compatible memory DC.
-        if (!BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, SRCCOPY))
+        if (!Gdi32.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, User32.SRCCOPY))
         {
             FunctionalDisplays.Instance.Logger.LogError("Failed to capture window!");
             return;
@@ -126,7 +71,7 @@ public class WindowCapture : CaptureSource
         using (Graphics graphics = Graphics.FromImage(bitmap))
         {
             IntPtr hdcBitmap = graphics.GetHdc();
-            BitBlt(hdcBitmap, 0, 0, width, height, hdcDest, 0, 0, SRCCOPY);
+            Gdi32.BitBlt(hdcBitmap, 0, 0, width, height, hdcDest, 0, 0, User32.SRCCOPY);
             graphics.ReleaseHdc(hdcBitmap);
         }
 
@@ -138,49 +83,9 @@ public class WindowCapture : CaptureSource
         bitmap.UnlockBits(bitmapData);
 
         // Clean up
-        DeleteObject(hBitmap);
-        DeleteDC(hdcDest);
-        ReleaseDC(windowHandle, hdcSrc);
-    }
-
-    private static List<IntPtr> GetRootWindowsOfProcess(int pid)
-    {
-        List<IntPtr> rootWindows = GetChildWindows(IntPtr.Zero);
-        List<IntPtr> dsProcRootWindows = new();
-        foreach (IntPtr hWnd in rootWindows)
-        {
-            GetWindowThreadProcessId(hWnd, out uint lpdwProcessId);
-            if (lpdwProcessId == pid)
-                dsProcRootWindows.Add(hWnd);
-        }
-
-        return dsProcRootWindows;
-    }
-
-    private static List<IntPtr> GetChildWindows(IntPtr parent)
-    {
-        List<IntPtr> result = new();
-        GCHandle listHandle = GCHandle.Alloc(result);
-        try
-        {
-            Win32Callback childProc = EnumWindow;
-            EnumChildWindows(parent, childProc, GCHandle.ToIntPtr(listHandle));
-        }
-        finally
-        {
-            if (listHandle.IsAllocated)
-                listHandle.Free();
-        }
-
-        return result;
-    }
-
-    private static bool EnumWindow(IntPtr handle, IntPtr pointer)
-    {
-        GCHandle gch = GCHandle.FromIntPtr(pointer);
-        if (gch.Target is not List<IntPtr> list) throw new InvalidCastException("GCHandle Target could not be cast as List<IntPtr>");
-        list.Add(handle);
-        return true;
+        Gdi32.DeleteObject(hBitmap);
+        Gdi32.DeleteDC(hdcDest);
+        User32.ReleaseDC(windowHandle, hdcSrc);
     }
 
     public override void Cleanup()
