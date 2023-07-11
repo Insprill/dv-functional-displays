@@ -73,6 +73,20 @@ public class ScreenCapture
 
     public Texture2D CaptureScreen()
     {
+        try
+        {
+            CreateCapture();
+        }
+        catch (SharpDXException e)
+        {
+            FunctionalDisplays.Instance.Logger.LogError($"Failed to capture screen: {e.Message}");
+        }
+
+        return texture;
+    }
+
+    private void CreateCapture()
+    {
         // Free the last capture from GPU memory
         if (hasFrameToRelease)
         {
@@ -111,10 +125,10 @@ public class ScreenCapture
         // Release all resources
         screenResource.Dispose();
 
-        return BitmapToTexture2D();
+        UpdateTexture();
     }
 
-    private Texture2D BitmapToTexture2D()
+    private void UpdateTexture()
     {
         // Lock the bitmap's bits
         BitmapData bitmapData = bitmap.LockBits(boundsRect, ImageLockMode.ReadOnly, bitmap.PixelFormat);
@@ -133,7 +147,5 @@ public class ScreenCapture
 
         texture.LoadRawTextureData(rgbValues);
         texture.Apply();
-
-        return texture;
     }
 }
