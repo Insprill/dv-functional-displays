@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
-using SharpDX.Mathematics.Interop;
 using UnityEngine;
 using Graphics = System.Drawing.Graphics;
 
@@ -28,12 +27,6 @@ public class WindowCapture : CaptureSource
     #region Windows API
 
     [DllImport("user32.dll")]
-    private static extern bool GetWindowRect(IntPtr hWnd, out RawRectangle rect);
-
-    [DllImport("user32.dll")]
-    private static extern bool PrintWindow(IntPtr hWnd, IntPtr hdcBlt, uint nFlags);
-
-    [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
     private delegate bool Win32Callback(IntPtr hwnd, IntPtr lParam);
@@ -41,6 +34,32 @@ public class WindowCapture : CaptureSource
     [DllImport("user32.Dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool EnumChildWindows(IntPtr parentHandle, Win32Callback callback, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetClientRect(IntPtr hWnd, out Rectangle lpRect);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetWindowDC(IntPtr hWnd);
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int nWidth, int nHeight);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool BitBlt(IntPtr hdc, int nXDest, int nYDest, int nWidth, int nHeight, IntPtr hdcSrc, int nXSrc, int nYSrc, uint dwRop);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool DeleteObject(IntPtr hObject);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool DeleteDC(IntPtr hdc);
+
+    [DllImport("user32.dll")]
+    private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+    private const uint SRCCOPY = 0x00CC0020; // BitBlt dwRop parameter
 
     #endregion
 
@@ -68,10 +87,9 @@ public class WindowCapture : CaptureSource
             return;
         }
 
-        GetWindowRect(windowHandle, out RawRectangle windowRect);
-
-        int width = windowRect.Right - windowRect.Left;
-        int height = windowRect.Bottom - windowRect.Top;
+        GetClientRect(windowHandle, out Rectangle clientRect);
+        int width = clientRect.Width;
+        int height = clientRect.Height;
 
         if (width <= 0 || height <= 0)
         {
@@ -88,19 +106,28 @@ public class WindowCapture : CaptureSource
             lastHeight = height;
         }
 
+        // Get the handle to the client area's device context
+        IntPtr hdcSrc = GetWindowDC(windowHandle);
+
+        // Create a memory device context compatible with the client area
+        IntPtr hdcDest = CreateCompatibleDC(hdcSrc);
+
+        // Create a bitmap compatible with the client area
+        IntPtr hBitmap = CreateCompatibleBitmap(hdcSrc, width, height);
+
+        // Bit block transfer into our compatible memory DC.
+        if (!BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, SRCCOPY))
+        {
+            FunctionalDisplays.Instance.Logger.LogError("Failed to capture window!");
+            return;
+        }
+
+        // Draw the captured image (hBitmap) into our bitmap object
         using (Graphics graphics = Graphics.FromImage(bitmap))
         {
-            IntPtr deviceContext = graphics.GetHdc();
-
-            // Capture the screen region of the target window
-            if (!PrintWindow(windowHandle, deviceContext, 0))
-            {
-                FunctionalDisplays.Instance.Logger.LogError("Failed to print window!");
-                return;
-            }
-
-            // Do something with the captured image
-            graphics.ReleaseHdc(deviceContext);
+            IntPtr hdcBitmap = graphics.GetHdc();
+            BitBlt(hdcBitmap, 0, 0, width, height, hdcDest, 0, 0, SRCCOPY);
+            graphics.ReleaseHdc(hdcBitmap);
         }
 
         BitmapData bitmapData = bitmap.LockBits(boundsRect, ImageLockMode.ReadOnly, bitmap.PixelFormat);
@@ -109,6 +136,11 @@ public class WindowCapture : CaptureSource
         texture.Apply();
 
         bitmap.UnlockBits(bitmapData);
+
+        // Clean up
+        DeleteObject(hBitmap);
+        DeleteDC(hdcDest);
+        ReleaseDC(windowHandle, hdcSrc);
     }
 
     private static List<IntPtr> GetRootWindowsOfProcess(int pid)
