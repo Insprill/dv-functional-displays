@@ -1,0 +1,16 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{fbd0ba37-70a8-43a5-9527-965de8fbe29a}") = "FunctionalDisplays", "FunctionalDisplays/FunctionalDisplays.csproj", "{96b8ee68-88e8-476f-afdf-e339d57624da}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{96b8ee68-88e8-476f-afdf-e339d57624da}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96b8ee68-88e8-476f-afdf-e339d57624da}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96b8ee68-88e8-476f-afdf-e339d57624da}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96b8ee68-88e8-476f-afdf-e339d57624da}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

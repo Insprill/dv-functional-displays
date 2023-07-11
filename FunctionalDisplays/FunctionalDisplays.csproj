@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net48</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <RootNamespace>FunctionalDisplays</RootNamespace>
+        <version>0.1.0</version>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Derail Valley -->
+        <Reference Include="Assembly-CSharp" />
+        <Reference Include="CommandTerminal" />
+        <Reference Include="DV.Utils" />
+        <!-- Third Party -->
+        <PackageReference Include="SharpDX" Version="4.2.0" />
+        <PackageReference Include="SharpDX.Direct3D11" Version="4.2.0" />
+        <!-- Unity -->
+        <PackageReference Include="UnityEngine.Modules" Version="2019.4.40" IncludeAssets="compile" />
+        <!-- Mod Loader -->
+        <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
+        <PackageReference Include="BepInEx.Core" Version="5.*" />
+        <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
+    </ItemGroup>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <!-- Copy to build folder -->
+        <Copy SourceFiles="$(TargetPath);$(OutputPath)/SharpDX.dll;$(OutputPath)/SharpDX.Direct3D11.dll;$(OutputPath)/SharpDX.DXGI.dll" DestinationFolder="../build/" />
+
+        <!-- Copy to game install folder -->
+        <Exec Condition="Exists('$(DvInstallDir)') And '$(OS)' == 'Windows_NT'" Command="powershell -executionpolicy bypass -Command &quot;(../package.ps1 -NoArchive -OutputDirectory '$(DvInstallDir)')&quot;" />
+        <Exec Condition="Exists('$(DvInstallDir)') And '$(OS)' != 'Windows_NT'" Command="pwsh  -Command &quot;(../package.ps1 -NoArchive -OutputDirectory '$(DvInstallDir)')&quot;" />
+    </Target>
+</Project>
