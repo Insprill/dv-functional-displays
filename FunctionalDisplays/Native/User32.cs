@@ -33,8 +33,7 @@ public class User32
     {
         public static bool TryGetRootWindowOfProcess(uint pid, out IntPtr value)
         {
-            Dictionary<uint, IntPtr> rootWindows = GetRootWindows();
-            return rootWindows.TryGetValue(pid, out value);
+            return GetRootWindows().TryGetValue(pid, out value);
         }
 
         public static Dictionary<uint, IntPtr> GetRootWindows()

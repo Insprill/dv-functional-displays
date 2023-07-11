@@ -38,7 +38,7 @@ public class WindowCapture : CaptureSource
 
         if (width <= 0 || height <= 0)
         {
-            FunctionalDisplays.Instance.Logger.LogError("Invalid window dimensions!");
+            FunctionalDisplays.Instance.Logger.LogError($"Invalid window dimensions for PID {pid}!");
             return;
         }
 
@@ -63,7 +63,7 @@ public class WindowCapture : CaptureSource
         // Bit block transfer into our compatible memory DC.
         if (!Gdi32.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, Gdi32.SRCCOPY))
         {
-            FunctionalDisplays.Instance.Logger.LogError("Failed to capture window!");
+            FunctionalDisplays.Instance.Logger.LogError($"Failed to capture window for PID {pid}!");
             return;
         }
 
