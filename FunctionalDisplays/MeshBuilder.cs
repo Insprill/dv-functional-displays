@@ -37,6 +37,9 @@ public static class MeshBuilder
         mesh.triangles = newTriangles;
         mesh.normals = newNormals;
 
+        // Upload to GPU and free from CPU memory
+        mesh.UploadMeshData(true);
+
         return mesh;
     }
 }
