@@ -8,8 +8,6 @@ namespace FunctionalDisplays.Native;
 
 public class User32
 {
-    public const uint SRCCOPY = 0x00CC0020; // BitBlt dwRop parameter
-
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
@@ -74,8 +72,7 @@ public class User32
         private static bool EnumWindow(IntPtr handle, IntPtr pointer)
         {
             GCHandle gch = GCHandle.FromIntPtr(pointer);
-            if (gch.Target is not List<IntPtr> list) throw new InvalidCastException("GCHandle Target could not be cast as List<IntPtr>");
-            list.Add(handle);
+            ((List<IntPtr>)gch.Target).Add(handle);
             return true;
         }
     }

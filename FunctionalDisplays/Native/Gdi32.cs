@@ -5,6 +5,8 @@ namespace FunctionalDisplays.Native;
 
 public class Gdi32
 {
+    public const uint SRCCOPY = 0x00CC0020; // BitBlt dwRop parameter
+
     [DllImport("gdi32.dll")]
     public static extern IntPtr CreateCompatibleDC(IntPtr hdc);
 

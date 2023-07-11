@@ -61,7 +61,7 @@ public class WindowCapture : CaptureSource
         IntPtr hBitmap = Gdi32.CreateCompatibleBitmap(hdcSrc, width, height);
 
         // Bit block transfer into our compatible memory DC.
-        if (!Gdi32.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, User32.SRCCOPY))
+        if (!Gdi32.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, Gdi32.SRCCOPY))
         {
             FunctionalDisplays.Instance.Logger.LogError("Failed to capture window!");
             return;
@@ -71,7 +71,7 @@ public class WindowCapture : CaptureSource
         using (Graphics graphics = Graphics.FromImage(bitmap))
         {
             IntPtr hdcBitmap = graphics.GetHdc();
-            Gdi32.BitBlt(hdcBitmap, 0, 0, width, height, hdcDest, 0, 0, User32.SRCCOPY);
+            Gdi32.BitBlt(hdcBitmap, 0, 0, width, height, hdcDest, 0, 0, Gdi32.SRCCOPY);
             graphics.ReleaseHdc(hdcBitmap);
         }
 
