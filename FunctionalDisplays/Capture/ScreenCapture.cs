@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using SharpDX;
 using SharpDX.Direct3D;
@@ -24,8 +22,6 @@ public class ScreenCapture
     private readonly OutputDuplication duplication;
     private readonly int width;
     private readonly int height;
-    private readonly Rectangle boundsRect;
-    private readonly Bitmap bitmap;
     private readonly Texture2D texture;
     private readonly SharpDX.Direct3D11.Texture2D screenTexture;
     private readonly byte[] rgbValues;
@@ -42,8 +38,6 @@ public class ScreenCapture
         duplication = output1.DuplicateOutput(device);
         width = output.Description.DesktopBounds.Right;
         height = output.Description.DesktopBounds.Bottom;
-        boundsRect = new Rectangle(0, 0, width, height);
-        bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
         texture = new Texture2D(width, height, TextureFormat.BGRA32, false);
         screenTexture = new SharpDX.Direct3D11.Texture2D(device, new Texture2DDescription {
             CpuAccessFlags = CpuAccessFlags.Read,
@@ -63,7 +57,6 @@ public class ScreenCapture
     public void Cleanup()
     {
         screenTexture.Dispose();
-        bitmap.Dispose();
         if (hasFrameToRelease) duplication.ReleaseFrame();
         duplication.Dispose();
         output1.Dispose();
@@ -107,46 +100,22 @@ public class ScreenCapture
         DataBox mapSource = device.ImmediateContext.MapSubresource(screenTexture, 0, MapMode.Read, MapFlags.None);
 
         // Copy pixels from screen capture Texture to GDI bitmap
-        BitmapData mapDest = bitmap.LockBits(boundsRect, ImageLockMode.WriteOnly, bitmap.PixelFormat);
-        IntPtr sourcePtr = mapSource.DataPointer;
-        IntPtr destPtr = IntPtr.Add(mapDest.Scan0, mapDest.Stride * (height - 1));
+        IntPtr sourcePtr = IntPtr.Add(mapSource.DataPointer, mapSource.RowPitch * (height - 1));
         for (int y = 0; y < height; y++)
         {
             // Copy a single line
-            Utilities.CopyMemory(destPtr, sourcePtr, width * 4);
+            Marshal.Copy(sourcePtr, rgbValues, y * width * 4, width * 4);
 
-            // Advance pointers
-            sourcePtr = IntPtr.Add(sourcePtr, mapSource.RowPitch);
-            destPtr = IntPtr.Subtract(destPtr, mapDest.Stride);
+            // Advance pointer
+            sourcePtr = IntPtr.Subtract(sourcePtr, mapSource.RowPitch);
         }
-
-        // Release source and dest locks
-        bitmap.UnlockBits(mapDest);
-        device.ImmediateContext.UnmapSubresource(screenTexture, 0);
-
-        // Release all resources
-        screenResource.Dispose();
-
-        UpdateTexture();
-    }
-
-    private void UpdateTexture()
-    {
-        // Lock the bitmap's bits
-        BitmapData bitmapData = bitmap.LockBits(boundsRect, ImageLockMode.ReadOnly, bitmap.PixelFormat);
-
-        // Declare an array to hold the bytes of the bitmap
-        int bytes = Mathf.Abs(bitmapData.Stride) * height;
-
-        // Get the address of the first line
-        IntPtr ptr = bitmapData.Scan0;
-
-        // Copy the RGB values into the array
-        Marshal.Copy(ptr, rgbValues, 0, bytes);
-
-        bitmap.UnlockBits(bitmapData);
 
         texture.LoadRawTextureData(rgbValues);
         texture.Apply();
+
+        device.ImmediateContext.UnmapSubresource(screenTexture, 0);
+
+        // Release temporary resources
+        screenResource.Dispose();
     }
 }
