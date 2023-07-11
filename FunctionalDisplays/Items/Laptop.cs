@@ -7,7 +7,7 @@ public class Laptop : DisplayableItem
     private const float WIDTH = 0.3575f;
     private const float HEIGHT = 0.2275f;
     private static readonly Vector3 LOCAL_POSITION = new(0f, 0.14f, 0.1827f);
-    private static readonly Quaternion LOCAL_ROTATION = Quaternion.Euler(new Vector3(18.637f, 0f, 0f));
+    private static readonly Quaternion LOCAL_ROTATION = Quaternion.Euler(new Vector3(18.637f, 0f, 180f));
 
     private readonly Mesh mesh = MeshBuilder.BuildQuad(WIDTH, HEIGHT);
 

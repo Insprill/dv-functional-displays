@@ -1,12 +1,13 @@
 ﻿using System.Collections;
+using FunctionalDisplays.Capture;
 using UnityEngine;
-using ScreenCapture = FunctionalDisplays.Capture.ScreenCapture;
 
 namespace FunctionalDisplays;
 
 public static class ScreenUpdater
 {
     private static Material material;
+    private static CaptureSource captureSource;
 
     public static Material GetMaterial()
     {
@@ -18,32 +19,44 @@ public static class ScreenUpdater
 
     public static IEnumerator UpdateScreens(FunctionalDisplays functionalDisplays)
     {
-        byte adapter = functionalDisplays.Settings.adapter.Value;
-        byte display = functionalDisplays.Settings.display.Value;
-        ScreenCapture screenCapture = new(adapter, display);
+        Settings settings = functionalDisplays.Settings;
+        InitSource(settings);
+
+        settings.captureSourceType.SettingChanged += (_, _) =>
+        {
+            InitSource(settings);
+        };
+        settings.adapter.SettingChanged += (_, _) =>
+        {
+            if (settings.captureSourceType.Value == CaptureSourceType.Screen)
+                InitSource(settings);
+        };
+        settings.display.SettingChanged += (_, _) =>
+        {
+            if (settings.captureSourceType.Value == CaptureSourceType.Screen)
+                InitSource(settings);
+        };
 
         while (WorldStreamingInit.IsLoaded)
         {
-            if (!functionalDisplays.Settings.enabled.Value)
+            if (!settings.enabled.Value)
             {
                 yield return WaitFor.SecondsRealtime(1f);
                 continue;
             }
 
-            if (adapter != functionalDisplays.Settings.adapter.Value || display != functionalDisplays.Settings.display.Value)
-            {
-                adapter = functionalDisplays.Settings.adapter.Value;
-                display = functionalDisplays.Settings.display.Value;
-                screenCapture.Cleanup();
-                screenCapture = new ScreenCapture(adapter, display);
-            }
-
-            Texture2D texture = screenCapture.CaptureScreen();
-            material.mainTexture ??= texture;
+            captureSource.Capture();
+            material.mainTexture = captureSource.Texture;
 
             yield return WaitFor.SecondsRealtime(1f / FunctionalDisplays.Instance.Settings.framerate.Value);
         }
 
-        screenCapture.Cleanup();
+        captureSource.Cleanup();
+    }
+
+    private static void InitSource(Settings settings)
+    {
+        captureSource?.Cleanup();
+        captureSource = CaptureSource.CreateSource(settings);
     }
 }

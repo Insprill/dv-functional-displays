@@ -1,6 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
-using SharpDX;
+﻿using SharpDX;
 using SharpDX.Direct3D;
 using SharpDX.Direct3D11;
 using SharpDX.DXGI;
@@ -12,7 +10,7 @@ using Texture2D = UnityEngine.Texture2D;
 
 namespace FunctionalDisplays.Capture;
 
-public class ScreenCapture
+public class ScreenCapture : CaptureSource
 {
     private readonly Factory1 factory;
     private readonly Adapter1 adapter;
@@ -24,7 +22,6 @@ public class ScreenCapture
     private readonly int height;
     private readonly Texture2D texture;
     private readonly SharpDX.Direct3D11.Texture2D screenTexture;
-    private readonly byte[] rgbValues;
 
     private bool hasFrameToRelease;
 
@@ -51,10 +48,11 @@ public class ScreenCapture
             SampleDescription = { Count = 1, Quality = 0 },
             Usage = ResourceUsage.Staging
         });
-        rgbValues = new byte[width * 4 * height];
     }
 
-    public void Cleanup()
+    public override Texture2D Texture => texture;
+
+    public override void Cleanup()
     {
         screenTexture.Dispose();
         if (hasFrameToRelease) duplication.ReleaseFrame();
@@ -66,7 +64,7 @@ public class ScreenCapture
         factory.Dispose();
     }
 
-    public Texture2D CaptureScreen()
+    public override void Capture()
     {
         try
         {
@@ -76,8 +74,6 @@ public class ScreenCapture
         {
             FunctionalDisplays.Instance.Logger.LogError($"Failed to capture screen: {e.Message}");
         }
-
-        return texture;
     }
 
     private void CreateCapture()
@@ -99,23 +95,12 @@ public class ScreenCapture
         // Get the desktop capture texture
         DataBox mapSource = device.ImmediateContext.MapSubresource(screenTexture, 0, MapMode.Read, MapFlags.None);
 
-        // Copy pixels from screen capture Texture to GDI bitmap
-        IntPtr sourcePtr = IntPtr.Add(mapSource.DataPointer, mapSource.RowPitch * (height - 1));
-        for (int y = 0; y < height; y++)
-        {
-            // Copy a single line
-            Marshal.Copy(sourcePtr, rgbValues, y * width * 4, width * 4);
-
-            // Advance pointer
-            sourcePtr = IntPtr.Subtract(sourcePtr, mapSource.RowPitch);
-        }
-
-        texture.LoadRawTextureData(rgbValues);
+        // Load the Unity texture from the pointer
+        texture.LoadRawTextureData(mapSource.DataPointer, width * height * 4);
         texture.Apply();
 
-        device.ImmediateContext.UnmapSubresource(screenTexture, 0);
-
         // Release temporary resources
+        device.ImmediateContext.UnmapSubresource(screenTexture, 0);
         screenResource.Dispose();
     }
 }

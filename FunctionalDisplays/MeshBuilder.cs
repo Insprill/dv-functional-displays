@@ -9,33 +9,39 @@ public static class MeshBuilder
         Mesh mesh = new();
 
         // Setup vertices
-        Vector3[] newVertices = new Vector3[4];
         float halfHeight = height * 0.5f;
         float halfWidth = width * 0.5f;
-        newVertices[0] = new Vector3(-halfWidth, -halfHeight, 0);
-        newVertices[1] = new Vector3(-halfWidth, halfHeight, 0);
-        newVertices[2] = new Vector3(halfWidth, -halfHeight, 0);
-        newVertices[3] = new Vector3(halfWidth, halfHeight, 0);
+        Vector3[] vertices = {
+            new(halfWidth, -halfHeight, 0),
+            new(halfWidth, halfHeight, 0),
+            new(-halfWidth, -halfHeight, 0),
+            new(-halfWidth, halfHeight, 0)
+        };
 
         // Setup UVs
-        Vector2[] newUVs = new Vector2[newVertices.Length];
-        newUVs[0] = new Vector2(0, 0);
-        newUVs[1] = new Vector2(0, 1);
-        newUVs[2] = new Vector2(1, 0);
-        newUVs[3] = new Vector2(1, 1);
+        Vector2[] uvs = {
+            new(0, 0),
+            new(0, 1),
+            new(1, 0),
+            new(1, 1)
+        };
 
         // Setup triangles
-        int[] newTriangles = { 0, 1, 2, 3, 2, 1 };
+        int[] triangles = {
+            0, 2, 1,
+            1, 2, 3
+        };
 
         // Setup normals
-        Vector3[] newNormals = new Vector3[newVertices.Length];
-        for (int i = 0; i < newNormals.Length; i++) newNormals[i] = Vector3.forward;
+        Vector3[] normals = new Vector3[vertices.Length];
+        for (int i = 0; i < normals.Length; i++)
+            normals[i] = Vector3.forward;
 
         // Create quad
-        mesh.vertices = newVertices;
-        mesh.uv = newUVs;
-        mesh.triangles = newTriangles;
-        mesh.normals = newNormals;
+        mesh.vertices = vertices;
+        mesh.uv = uvs;
+        mesh.triangles = triangles;
+        mesh.normals = normals;
 
         // Upload to GPU and free from CPU memory
         mesh.UploadMeshData(true);
