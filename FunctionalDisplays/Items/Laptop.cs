@@ -28,5 +28,19 @@ public class Laptop : DisplayableItem
 
         MeshRenderer renderer = displayObject.AddComponent<MeshRenderer>();
         renderer.sharedMaterial = ScreenUpdater.GetMaterial();
+
+        LODGroup lodGroup = transform.GetComponent<LODGroup>();
+        LOD[] lods = lodGroup.GetLODs();
+        for (int i = 0; i < lods.Length; i++)
+        {
+            Renderer[] renderers = lods[i].renderers;
+            Renderer[] newRenderers = new Renderer[renderers.Length + 1];
+            for (int j = 0; j < renderers.Length; j++)
+                newRenderers[j] = renderers[j];
+            newRenderers[renderers.Length] = renderer;
+            lods[i].renderers = newRenderers;
+        }
+
+        lodGroup.SetLODs(lods);
     }
 }
