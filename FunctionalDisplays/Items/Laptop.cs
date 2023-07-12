@@ -1,13 +1,13 @@
 ﻿using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace FunctionalDisplays.Items;
 
 public class Laptop : DisplayableItem
 {
-    private const float WIDTH = 0.3575f;
-    private const float HEIGHT = 0.2275f;
-    private static readonly Vector3 LOCAL_POSITION = new(0f, 0.14f, 0.1827f);
-    private static readonly Quaternion LOCAL_ROTATION = Quaternion.Euler(new Vector3(18.637f, 0f, 180f));
+    private const float WIDTH = 0.3557966f;
+    private const float HEIGHT = 0.2269155f;
+    private static readonly Vector3 LOCAL_POSITION = new(0.0000000149f, 0.1396f, 0.1835f);
 
     private readonly Mesh mesh = MeshBuilder.BuildQuad(WIDTH, HEIGHT);
 
@@ -15,11 +15,15 @@ public class Laptop : DisplayableItem
 
     public override void Setup(Transform transform)
     {
+        Vector3 rotation = transform.Find("LaptopCap").localEulerAngles;
+        rotation.z = 180f; // Fix texture being upside down
+
         GameObject displayObject = new("Display") {
+            layer = transform.gameObject.layer,
             transform = {
                 parent = transform,
                 localPosition = LOCAL_POSITION,
-                localRotation = LOCAL_ROTATION
+                localEulerAngles = rotation
             }
         };
 
@@ -27,6 +31,7 @@ public class Laptop : DisplayableItem
         filter.sharedMesh = mesh;
 
         MeshRenderer renderer = displayObject.AddComponent<MeshRenderer>();
+        renderer.shadowCastingMode = ShadowCastingMode.Off;
         renderer.sharedMaterial = ScreenUpdater.GetMaterial();
 
         LODGroup lodGroup = transform.GetComponent<LODGroup>();
