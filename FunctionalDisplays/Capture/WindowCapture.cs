@@ -14,7 +14,6 @@ public class WindowCapture : CaptureSource
     private int lastHeight;
     private Texture2D texture;
     private Bitmap bitmap;
-    private Rectangle boundsRect;
 
     public WindowCapture(Settings settings)
     {
@@ -32,59 +31,45 @@ public class WindowCapture : CaptureSource
             return;
         }
 
-        User32.GetClientRect(windowHandle, out Rectangle clientRect);
-        int width = clientRect.Width;
-        int height = clientRect.Height;
+        User32.GetClientRect(windowHandle, out Rectangle windowRect);
+
+        int width = windowRect.Width;
+        int height = windowRect.Height;
 
         if (width <= 0 || height <= 0)
         {
-            FunctionalDisplays.Instance.Logger.LogError($"Invalid window dimensions for PID {pid}!");
+            FunctionalDisplays.Instance.Logger.LogError($"Invalid window dimensions for PID {pid} ({width}x{height})!");
             return;
         }
 
         if (lastWidth != width || lastHeight != height)
         {
+            FunctionalDisplays.Instance.Logger.LogDebug($"Window dimensions changed for PID {pid} Before: {lastWidth}x{lastHeight} After: {width}x{height}");
             texture = new Texture2D(width, height, TextureFormat.BGRA32, false);
-            boundsRect = new Rectangle(0, 0, width, height);
             bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             lastWidth = width;
             lastHeight = height;
         }
 
         // Get the handle to the client area's device context
-        IntPtr hdcSrc = User32.GetWindowDC(windowHandle);
-
-        // Create a memory device context compatible with the client area
-        IntPtr hdcDest = Gdi32.CreateCompatibleDC(hdcSrc);
-
-        // Create a bitmap compatible with the client area
-        IntPtr hBitmap = Gdi32.CreateCompatibleBitmap(hdcSrc, width, height);
-
-        // Bit block transfer into our compatible memory DC.
-        if (!Gdi32.BitBlt(hdcDest, 0, 0, width, height, hdcSrc, 0, 0, Gdi32.SRCCOPY))
-        {
-            FunctionalDisplays.Instance.Logger.LogError($"Failed to capture window for PID {pid}!");
-            return;
-        }
+        IntPtr hdcSrc = User32.GetDC(windowHandle);
 
         // Draw the captured image (hBitmap) into our bitmap object
         using (Graphics graphics = Graphics.FromImage(bitmap))
         {
             IntPtr hdcBitmap = graphics.GetHdc();
-            Gdi32.BitBlt(hdcBitmap, 0, 0, width, height, hdcDest, 0, 0, Gdi32.SRCCOPY);
+            Gdi32.BitBlt(hdcBitmap, 0, 0, width, height, hdcSrc, 0, 0, Gdi32.SRCCOPY);
             graphics.ReleaseHdc(hdcBitmap);
         }
 
-        BitmapData bitmapData = bitmap.LockBits(boundsRect, ImageLockMode.ReadOnly, bitmap.PixelFormat);
+        BitmapData bitmapData = bitmap.LockBits(windowRect, ImageLockMode.ReadOnly, bitmap.PixelFormat);
 
-        texture.LoadRawTextureData(bitmapData.Scan0, lastWidth * lastHeight * 4);
+        texture.LoadRawTextureData(bitmapData.Scan0, width * height * 4);
         texture.Apply();
 
         bitmap.UnlockBits(bitmapData);
 
         // Clean up
-        Gdi32.DeleteObject(hBitmap);
-        Gdi32.DeleteDC(hdcDest);
         User32.ReleaseDC(windowHandle, hdcSrc);
     }
 

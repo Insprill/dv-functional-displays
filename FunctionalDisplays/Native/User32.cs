@@ -6,22 +6,22 @@ using System.Text;
 
 namespace FunctionalDisplays.Native;
 
-public class User32
+public static class User32
 {
     [DllImport("user32.dll")]
-    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-    public delegate bool Win32Callback(IntPtr hwnd, IntPtr lParam);
+    private delegate bool Win32Callback(IntPtr hwnd, IntPtr lParam);
 
     [DllImport("user32.Dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool EnumChildWindows(IntPtr parentHandle, Win32Callback callback, IntPtr lParam);
+    private static extern bool EnumChildWindows(IntPtr parentHandle, Win32Callback callback, IntPtr lParam);
 
     [DllImport("user32.dll")]
     public static extern bool GetClientRect(IntPtr hWnd, out Rectangle lpRect);
 
     [DllImport("user32.dll")]
-    public static extern IntPtr GetWindowDC(IntPtr hWnd);
+    public static extern IntPtr GetDC(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
