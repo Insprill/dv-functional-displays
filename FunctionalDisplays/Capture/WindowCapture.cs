@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using FunctionalDisplays.Config;
 using FunctionalDisplays.Native;
 using UnityEngine;
 using Graphics = System.Drawing.Graphics;

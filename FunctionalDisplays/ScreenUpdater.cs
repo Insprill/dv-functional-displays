@@ -1,5 +1,7 @@
 ﻿using System.Collections;
+using System.Linq;
 using FunctionalDisplays.Capture;
+using FunctionalDisplays.Config;
 using UnityEngine;
 
 namespace FunctionalDisplays;
@@ -22,19 +24,12 @@ public static class ScreenUpdater
         Settings settings = functionalDisplays.Settings;
         InitSource(settings);
 
-        settings.captureSourceType.SettingChanged += (_, _) =>
+        settings.configFile.SettingChanged += (_, args) =>
         {
+            object[] tags = args.ChangedSetting.Description.Tags;
+            if (tags.OfType<ConfigAttributes>().FirstOrDefault()?.ReinitializeCaptureSources == false)
+                return;
             InitSource(settings);
-        };
-        settings.adapter.SettingChanged += (_, _) =>
-        {
-            if (settings.captureSourceType.Value == CaptureSourceType.Screen)
-                InitSource(settings);
-        };
-        settings.display.SettingChanged += (_, _) =>
-        {
-            if (settings.captureSourceType.Value == CaptureSourceType.Screen)
-                InitSource(settings);
         };
 
         while (WorldStreamingInit.IsLoaded)
@@ -48,7 +43,7 @@ public static class ScreenUpdater
             captureSource.Capture();
             material.mainTexture = captureSource.Texture;
 
-            yield return WaitFor.SecondsRealtime(1f / FunctionalDisplays.Instance.Settings.framerate.Value);
+            yield return WaitFor.SecondsRealtime(1f / settings.framerate.Value);
         }
 
         captureSource.Cleanup();

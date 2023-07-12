@@ -1,4 +1,5 @@
 ﻿using System;
+using FunctionalDisplays.Config;
 using UnityEngine;
 
 namespace FunctionalDisplays.Capture;

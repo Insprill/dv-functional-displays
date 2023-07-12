@@ -3,6 +3,7 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using DV.Utils;
+using FunctionalDisplays.Config;
 using HarmonyLib;
 
 namespace FunctionalDisplays;

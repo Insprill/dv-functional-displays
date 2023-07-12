@@ -7,10 +7,12 @@ using FunctionalDisplays.Capture;
 using FunctionalDisplays.Native;
 using UnityEngine;
 
-namespace FunctionalDisplays;
+namespace FunctionalDisplays.Config;
 
 public class Settings
 {
+    public readonly ConfigFile configFile;
+
     public readonly ConfigEntry<bool> enabled;
     public readonly ConfigEntry<CaptureSourceType> captureSourceType;
 
@@ -24,15 +26,46 @@ public class Settings
 
     public Settings(ConfigFile config)
     {
-        enabled = config.Bind("General", "Enabled", true, "Whether in-game displays are enabled");
-        captureSourceType = config.Bind("General", "Capture Source", CaptureSourceType.Screen, "What method to use for capturing the display");
+        configFile = config;
 
-        framerate = config.Bind("Screen Capture", "Framerate", (byte)15, new ConfigDescription("Framerate of the display", new AcceptableValueRange<byte>(1, 60)));
-        adapter = config.Bind("Screen Capture", "Adapter", (byte)0, "Which graphics adapter to use");
-        display = config.Bind("Screen Capture", "Display", (byte)0, "Which display to capture");
+        enabled = config.Bind(
+            "General",
+            "Enabled",
+            true,
+            new ConfigDescription("Whether in-game displays are enabled", null, new ConfigAttributes { ReinitializeCaptureSources = false })
+        );
+        captureSourceType = config.Bind(
+            "General",
+            "Capture Source",
+            CaptureSourceType.Screen,
+            "What method to use for capturing the display"
+        );
 
-        windowPid = config.Bind("Window Capture", "PID", (uint)0,
-            new ConfigDescription("The PID of the window to capture", null, new ConfigurationManagerAttributes { CustomDrawer = DrawPidPicker }));
+        framerate = config.Bind(
+            "Screen Capture",
+            "Framerate",
+            (byte)15,
+            new ConfigDescription("Framerate of the display", new AcceptableValueRange<byte>(1, 60), new ConfigAttributes { ReinitializeCaptureSources = false })
+        );
+        adapter = config.Bind(
+            "Screen Capture",
+            "Adapter",
+            (byte)0,
+            "Which graphics adapter to use"
+        );
+        display = config.Bind(
+            "Screen Capture",
+            "Display",
+            (byte)0,
+            "Which display to capture"
+        );
+
+        windowPid = config.Bind(
+            "Window Capture",
+            "PID",
+            (uint)0,
+            new ConfigDescription("The PID of the window to capture", null, new ConfigurationManagerAttributes { CustomDrawer = DrawPidPicker })
+        );
     }
 
     private void DrawPidPicker(ConfigEntryBase entry)
