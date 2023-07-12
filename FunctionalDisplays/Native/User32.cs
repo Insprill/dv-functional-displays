@@ -42,6 +42,8 @@ public class User32
             Dictionary<uint, IntPtr> dsProcRootWindows = new();
             foreach (IntPtr hWnd in rootWindows)
             {
+                if (hWnd == IntPtr.Zero)
+                    continue;
                 GetWindowThreadProcessId(hWnd, out uint lpdwProcessId);
                 if (!dsProcRootWindows.ContainsKey(lpdwProcessId))
                     dsProcRootWindows.Add(lpdwProcessId, hWnd);
